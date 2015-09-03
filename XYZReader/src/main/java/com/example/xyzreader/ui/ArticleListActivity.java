@@ -57,6 +57,13 @@ public class ArticleListActivity extends ActionBarActivity implements
         setContentView(R.layout.activity_article_list);
         ButterKnife.bind(this);
 
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refresh();
+            }
+        });
+
         getLoaderManager().initLoader(0, null, this);
 
         if (savedInstanceState == null) {
