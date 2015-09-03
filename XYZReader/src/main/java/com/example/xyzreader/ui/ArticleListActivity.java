@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.RecyclerView;
@@ -68,15 +69,15 @@ public class ArticleListActivity extends ActionBarActivity implements
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        unregisterReceiver(mRefreshingReceiver);
+    protected void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mRefreshingReceiver);
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        registerReceiver(mRefreshingReceiver,
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(mRefreshingReceiver,
                 new IntentFilter(UpdaterService.BROADCAST_ACTION_STATE_CHANGE));
     }
 
