@@ -79,14 +79,6 @@ public class ArticleDetailFragment extends Fragment implements
         return fragment;
     }
 
-    @OnClick(R.id.share_fab)
-    public void onClick() {
-        startActivity(Intent.createChooser(ShareCompat.IntentBuilder.from(getActivity())
-                .setType("text/plain")
-                .setText("Some sample text")
-                .getIntent(), getString(R.string.action_share)));
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

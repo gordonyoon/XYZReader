@@ -3,14 +3,16 @@ package com.example.xyzreader.ui;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
+import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v13.app.FragmentStatePagerAdapter;
+import android.support.v4.app.ShareCompat;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
 import android.util.TypedValue;
 import android.view.View;
@@ -42,12 +44,14 @@ public class ArticleDetailActivity extends AppCompatActivity
     @Bind(R.id.pager) ViewPager mPager;
     @Bind(R.id.up_container) FrameLayout mUpButtonContainer;
     @Bind(R.id.action_up) ImageButton mUpButton;
+    @Bind(R.id.share_fab) FloatingActionButton mFab;
     MyPagerAdapter mPagerAdapter;
 
     ViewPager.OnPageChangeListener mOnPageChangeListener = new ViewPager.OnPageChangeListener() {
+
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
+//            mFab.setTranslationX(-positionOffsetPixels);
         }
 
         @Override
@@ -64,12 +68,28 @@ public class ArticleDetailActivity extends AppCompatActivity
             mUpButton.animate()
                     .alpha((state == ViewPager.SCROLL_STATE_IDLE) ? 1f : 0f)
                     .setDuration(300);
+
+            if (state == ViewPager.SCROLL_STATE_IDLE) {
+                mFab.show();
+            } else {
+                mFab.hide();
+            }
         }
     };
 
     @OnClick(R.id.action_up)
-    public void onClick() {
+    public void onUpClick() {
         onSupportNavigateUp();
+    }
+
+    @OnClick(R.id.share_fab)
+    public void onShareClick() {
+        startActivity(Intent.createChooser(
+                ShareCompat.IntentBuilder.from(this)
+                        .setType("text/plain")
+                        .setText("Some sample text")
+                        .getIntent(),
+                getString(R.string.action_share)));
     }
 
     @Override
