@@ -34,18 +34,42 @@ public class ArticleDetailActivity extends ActionBarActivity
 
     private Cursor mCursor;
     private long mStartId;
-
     private long mSelectedItemId;
-    private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
     private int mTopInset;
+    private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
 
     @Bind(R.id.pager) ViewPager mPager;
     @Bind(R.id.up_container) FrameLayout mUpButtonContainer;
-
     @Bind(R.id.action_up) ImageButton mUpButton;
-    @OnClick(R.id.action_up) public void onClick() { onSupportNavigateUp(); }
-
     MyPagerAdapter mPagerAdapter;
+
+    ViewPager.OnPageChangeListener mOnPageChangeListener = new ViewPager.OnPageChangeListener() {
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+            if (mCursor != null) {
+                mCursor.moveToPosition(position);
+            }
+            mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
+            updateUpButtonPosition();
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+            mUpButton.animate()
+                    .alpha((state == ViewPager.SCROLL_STATE_IDLE) ? 1f : 0f)
+                    .setDuration(300);
+        }
+    };
+
+    @OnClick(R.id.action_up)
+    public void onClick() {
+        onSupportNavigateUp();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,25 +102,6 @@ public class ArticleDetailActivity extends ActionBarActivity
                 .applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()));
         mPager.setPageMarginDrawable(new ColorDrawable(0x22000000));
 
-        mPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-            @Override
-            public void onPageSelected(int position) {
-                if (mCursor != null) {
-                    mCursor.moveToPosition(position);
-                }
-                mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
-                updateUpButtonPosition();
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                super.onPageScrollStateChanged(state);
-                mUpButton.animate()
-                        .alpha((state == ViewPager.SCROLL_STATE_IDLE) ? 1f : 0f)
-                        .setDuration(300);
-            }
-        });
-
         if (savedInstanceState == null) {
             if (getIntent() != null && getIntent().getData() != null) {
                 mStartId = ItemsContract.Items.getItemId(getIntent().getData());
@@ -108,6 +113,18 @@ public class ArticleDetailActivity extends ActionBarActivity
     private void updateUpButtonPosition() {
         int upButtonNormalBottom = mTopInset + mUpButton.getHeight();
         mUpButton.setTranslationY(Math.min(mSelectedItemUpButtonFloor - upButtonNormalBottom, 0));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mPager.removeOnPageChangeListener(mOnPageChangeListener);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mPager.addOnPageChangeListener(mOnPageChangeListener);
     }
 
     @Override
