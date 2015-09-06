@@ -1,5 +1,7 @@
 package com.example.xyzreader.ui;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
@@ -12,8 +14,11 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.app.ShareCompat;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.view.ViewPager;
+import android.support.v4.view.animation.FastOutSlowInInterpolator;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,6 +45,7 @@ public class ArticleDetailActivity extends AppCompatActivity
     private long mSelectedItemId;
     private int mTopInset;
     private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
+    private boolean mIsHiding;
 
     @Bind(R.id.pager) ViewPager mPager;
     @Bind(R.id.up_container) FrameLayout mUpButtonContainer;
@@ -51,7 +57,11 @@ public class ArticleDetailActivity extends AppCompatActivity
 
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-//            mFab.setTranslationX(-positionOffsetPixels);
+            if (positionOffset == 0) {
+                showFab();
+            } else {
+                hideFab();
+            }
         }
 
         @Override
@@ -68,12 +78,6 @@ public class ArticleDetailActivity extends AppCompatActivity
             mUpButton.animate()
                     .alpha((state == ViewPager.SCROLL_STATE_IDLE) ? 1f : 0f)
                     .setDuration(300);
-
-            if (state == ViewPager.SCROLL_STATE_IDLE) {
-                mFab.show();
-            } else {
-                mFab.hide();
-            }
         }
     };
 
@@ -185,6 +189,60 @@ public class ArticleDetailActivity extends AppCompatActivity
             mSelectedItemUpButtonFloor = fragment.getUpButtonFloor();
             updateUpButtonPosition();
         }
+    }
+
+    void hideFab() {
+        if (!mIsHiding) {
+            if (ViewCompat.isLaidOut(mFab) && !mFab.isInEditMode()) {
+                mFab.animate().scaleX(0.0F)
+                        .scaleY(0.0F)
+                        .alpha(0.0F)
+                        .setDuration(200L)
+                        .setInterpolator(new FastOutSlowInInterpolator())
+                        .setListener(new AnimatorListenerAdapter() {
+                            public void onAnimationCancel(Animator animation) {
+                            }
+
+                            public void onAnimationEnd(Animator animation) {
+                                mFab.setVisibility(View.GONE);
+                            }
+
+                            public void onAnimationStart(Animator animation) {
+                                mFab.setVisibility(View.VISIBLE);
+                            }
+                        });
+            } else {
+                mFab.setVisibility(View.GONE);
+            }
+            mIsHiding = true;
+        }
+    }
+
+    void showFab() {
+        if (mIsHiding) {
+            if (ViewCompat.isLaidOut(mFab) && !mFab.isInEditMode()) {
+                mFab.setAlpha(0.0F);
+                mFab.setScaleY(0.0F);
+                mFab.setScaleX(0.0F);
+                mFab.animate()
+                        .scaleX(1.0F)
+                        .scaleY(1.0F)
+                        .alpha(1.0F)
+                        .setDuration(200L)
+                        .setInterpolator(new FastOutSlowInInterpolator())
+                        .setListener(new AnimatorListenerAdapter() {
+                            public void onAnimationStart(Animator animation) {
+                                mFab.setVisibility(View.VISIBLE);
+                            }
+                        });
+            } else {
+                mFab.setVisibility(View.VISIBLE);
+                mFab.setAlpha(1.0F);
+                mFab.setScaleY(1.0F);
+                mFab.setScaleX(1.0F);
+            }
+        }
+        mIsHiding = false;
     }
 
     private class MyPagerAdapter extends FragmentStatePagerAdapter {
