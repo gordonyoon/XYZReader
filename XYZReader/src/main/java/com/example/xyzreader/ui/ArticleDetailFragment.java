@@ -2,7 +2,6 @@ package com.example.xyzreader.ui;
 
 import android.app.Fragment;
 import android.app.LoaderManager;
-import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -11,7 +10,6 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.support.v4.app.ShareCompat;
 import android.support.v7.graphics.Palette;
 import android.text.Html;
 import android.text.format.DateUtils;
@@ -31,9 +29,9 @@ import com.example.xyzreader.data.ArticleLoader;
 import butterknife.Bind;
 import butterknife.BindBool;
 import butterknife.BindDimen;
-import butterknife.OnClick;
 
-import static butterknife.ButterKnife.*;
+import static butterknife.ButterKnife.bind;
+import static butterknife.ButterKnife.findById;
 
 /**
  * A fragment representing a single Article detail screen. This fragment is
@@ -58,7 +56,6 @@ public class ArticleDetailFragment extends Fragment implements
 
     ColorDrawable mStatusBarColorDrawable;
     @Bind(R.id.photo) ImageView mPhotoView;
-    @Bind(R.id.photo_container) View mPhotoContainerView;
     @Bind(R.id.scrollview) ObservableScrollView mScrollView;
     @Bind(R.id.draw_insets_frame_layout) DrawInsetsFrameLayout mDrawInsetsFrameLayout;
 
@@ -107,7 +104,7 @@ public class ArticleDetailFragment extends Fragment implements
             public void onScrollChanged() {
                 mScrollY = mScrollView.getScrollY();
                 getActivityCast().onUpButtonFloorChanged(mItemId, ArticleDetailFragment.this);
-                mPhotoContainerView.setTranslationY((int)(mScrollY - mScrollY / PARALLAX_FACTOR));
+                mPhotoView.setTranslationY((int)(mScrollY - mScrollY / PARALLAX_FACTOR));
                 updateStatusBar();
             }
         });
@@ -247,13 +244,13 @@ public class ArticleDetailFragment extends Fragment implements
     }
 
     public int getUpButtonFloor() {
-        if (mPhotoContainerView == null || mPhotoView.getHeight() == 0) {
+        if (mPhotoView == null || mPhotoView.getHeight() == 0) {
             return Integer.MAX_VALUE;
         }
 
         // account for parallax
         return mIsCard
-                ? (int)mPhotoContainerView.getTranslationY() + mPhotoView.getHeight() - mScrollY
+                ? (int)mPhotoView.getTranslationY() + mPhotoView.getHeight() - mScrollY
                 : mPhotoView.getHeight() - mScrollY;
     }
 }
