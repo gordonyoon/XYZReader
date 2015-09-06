@@ -18,6 +18,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/detail_card_top_margin"
                 android:scaleType="centerCrop"
+                android:transitionName="@string/detail_fragment_image_transition_name"
                 android:background="@drawable/photo_background_protection"/>
 
             <com.example.xyzreader.ui.MaxWidthLinearLayout
