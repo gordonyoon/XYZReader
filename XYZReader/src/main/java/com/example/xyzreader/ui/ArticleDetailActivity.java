@@ -33,11 +33,17 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
+import static com.example.xyzreader.ui.ArticleListActivity.EXTRA_CURRENT_ITEM_POS;
+import static com.example.xyzreader.ui.ArticleListActivity.EXTRA_PREV_ITEM_POS;
+
 /**
  * An activity representing a single Article detail screen, letting you swipe between articles.
  */
 public class ArticleDetailActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final String STATE_OG_POS = "state_original_position";
+    private static final String STATE_CURR_POS = "state_current_position";
 
     private Cursor mCursor;
     private long mStartId;
@@ -45,6 +51,9 @@ public class ArticleDetailActivity extends AppCompatActivity
     private int mTopInset;
     private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
     private boolean mIsHiding;
+
+    private int mOriginalPos;
+    private int mCurrentPos;
 
     @Bind(R.id.pager) ViewPager mPager;
     @Bind(R.id.up_container) FrameLayout mUpButtonContainer;
@@ -70,6 +79,8 @@ public class ArticleDetailActivity extends AppCompatActivity
             }
             mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
             updateUpButtonPosition();
+
+            mCurrentPos = position;
         }
 
         @Override
@@ -127,16 +138,32 @@ public class ArticleDetailActivity extends AppCompatActivity
         mPager.setPageMarginDrawable(new ColorDrawable(0x22000000));
 
         if (savedInstanceState == null) {
-            if (getIntent() != null && getIntent().getData() != null) {
-                mStartId = ItemsContract.Items.getItemId(getIntent().getData());
-                mSelectedItemId = mStartId;
+            if (getIntent() != null) {
+                if (getIntent().getData() != null) {
+                    mStartId = ItemsContract.Items.getItemId(getIntent().getData());
+                    mSelectedItemId = mStartId;
+                }
+                mOriginalPos = getIntent().getIntExtra(EXTRA_CURRENT_ITEM_POS, 0);
+                mCurrentPos = mOriginalPos;
             }
+        } else {
+            mOriginalPos = savedInstanceState.getInt(STATE_OG_POS);
+            mCurrentPos = savedInstanceState.getInt(STATE_CURR_POS);
         }
     }
 
     private void updateUpButtonPosition() {
         int upButtonNormalBottom = mTopInset + mUpButton.getHeight();
         mUpButton.setTranslationY(Math.min(mSelectedItemUpButtonFloor - upButtonNormalBottom, 0));
+    }
+
+    @Override
+    public void supportFinishAfterTransition() {
+        Intent data = new Intent();
+        data.putExtra(EXTRA_CURRENT_ITEM_POS, mCurrentPos);
+        data.putExtra(EXTRA_PREV_ITEM_POS, getIntent().getExtras().getInt(EXTRA_CURRENT_ITEM_POS));
+        setResult(RESULT_OK, data);
+        super.supportFinishAfterTransition();
     }
 
     @Override
@@ -149,6 +176,13 @@ public class ArticleDetailActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         mPager.addOnPageChangeListener(mOnPageChangeListener);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_OG_POS, mOriginalPos);
+        outState.putInt(STATE_CURR_POS, mCurrentPos);
     }
 
     @Override

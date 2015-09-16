@@ -17,10 +17,10 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.support.v7.widget.Toolbar;
 import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.TextView;
 
 import com.example.xyzreader.R;
@@ -40,7 +40,9 @@ import butterknife.ButterKnife;
 public class ArticleListActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor> {
 
-    @Bind(R.id.toolbar) Toolbar mToolbar;
+    public static final String EXTRA_CURRENT_ITEM_POS = "extra_current_item_position";
+    public static final String EXTRA_PREV_ITEM_POS = "extra_previous_item_position";
+
     @Bind(R.id.swipe_refresh_layout) SwipeRefreshLayout mSwipeRefreshLayout;
     @Bind(R.id.recycler_view) RecyclerView mRecyclerView;
     private boolean mIsRefreshing = false;
@@ -90,6 +92,27 @@ public class ArticleListActivity extends AppCompatActivity implements
         super.onResume();
         LocalBroadcastManager.getInstance(this).registerReceiver(mRefreshingReceiver,
                 new IntentFilter(UpdaterService.BROADCAST_ACTION_STATE_CHANGE));
+    }
+
+    @Override
+    public void onActivityReenter(int resultCode, Intent data) {
+        super.onActivityReenter(resultCode, data);
+        int currPos = data.getIntExtra(EXTRA_CURRENT_ITEM_POS, 0);
+        int prevPos = data.getIntExtra(EXTRA_PREV_ITEM_POS, 0);
+
+        if (currPos != prevPos) {
+            mRecyclerView.scrollToPosition(currPos);
+        }
+        supportPostponeEnterTransition();
+        mRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
+                mRecyclerView.requestLayout();
+                supportStartPostponedEnterTransition();
+                return true;
+            }
+        });
     }
 
     private void updateRefreshingUI() {
@@ -144,6 +167,13 @@ public class ArticleListActivity extends AppCompatActivity implements
                 public void onClick(View view) {
                     Intent intent = new Intent(Intent.ACTION_VIEW,
                             ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
+
+                    // send the list position
+                    String transitionName = vh.thumbnailView.getTransitionName();
+                    if (transitionName != null) {
+                        intent.putExtra(EXTRA_CURRENT_ITEM_POS, Integer.parseInt(transitionName.replaceAll("[^0-9]", "")));
+                    }
+
                     ActivityOptionsCompat activityOptions =
                             ActivityOptionsCompat.makeSceneTransitionAnimation(
                                     ArticleListActivity.this,
