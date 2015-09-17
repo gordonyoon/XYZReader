@@ -1,6 +1,7 @@
 package com.example.xyzreader.ui;
 
 import android.app.LoaderManager;
+import android.app.SharedElementCallback;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -18,6 +19,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -27,6 +29,9 @@ import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 import com.example.xyzreader.data.UpdaterService;
+
+import java.util.List;
+import java.util.Map;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -43,9 +48,15 @@ public class ArticleListActivity extends AppCompatActivity implements
     public static final String EXTRA_CURRENT_ITEM_POS = "extra_current_item_position";
     public static final String EXTRA_PREV_ITEM_POS = "extra_previous_item_position";
 
+    public static final String THUMBNAIL_TRANSITION_NAME_BASE = "thumbnailView";
+
+    private int mCurrPos;
+    private int mPrevPos;
+
     @Bind(R.id.swipe_refresh_layout) SwipeRefreshLayout mSwipeRefreshLayout;
     @Bind(R.id.recycler_view) RecyclerView mRecyclerView;
     private boolean mIsRefreshing = false;
+    private boolean mIsReentering;
 
     private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
         @Override
@@ -57,11 +68,32 @@ public class ArticleListActivity extends AppCompatActivity implements
         }
     };
 
+    SharedElementCallback mCallback = new SharedElementCallback() {
+        @Override
+        public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+            super.onMapSharedElements(names, sharedElements);
+            if (mIsReentering) {
+                if (mCurrPos != mPrevPos) {
+                    String newTransitionName = THUMBNAIL_TRANSITION_NAME_BASE + mCurrPos;
+                    View newSharedView = mRecyclerView.findViewWithTag(newTransitionName);
+                    if (newSharedView != null) {
+                        names.clear();
+                        names.add(newTransitionName);
+                        sharedElements.clear();
+                        sharedElements.put(newTransitionName, newSharedView);
+                    }
+                }
+            }
+            mIsReentering = false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_list);
         ButterKnife.bind(this);
+        setExitSharedElementCallback(mCallback);
 
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -97,18 +129,19 @@ public class ArticleListActivity extends AppCompatActivity implements
     @Override
     public void onActivityReenter(int resultCode, Intent data) {
         super.onActivityReenter(resultCode, data);
-        int currPos = data.getIntExtra(EXTRA_CURRENT_ITEM_POS, 0);
-        int prevPos = data.getIntExtra(EXTRA_PREV_ITEM_POS, 0);
+        mIsReentering = true;
 
-        if (currPos != prevPos) {
-            mRecyclerView.scrollToPosition(currPos);
+        mCurrPos = data.getIntExtra(EXTRA_CURRENT_ITEM_POS, 0);
+        mPrevPos = data.getIntExtra(EXTRA_PREV_ITEM_POS, 0);
+        if (mCurrPos != mPrevPos) {
+            mRecyclerView.scrollToPosition(mCurrPos);
         }
         supportPostponeEnterTransition();
         mRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
             @Override
             public boolean onPreDraw() {
                 mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
-                mRecyclerView.requestLayout();
+//                mRecyclerView.requestLayout();
                 supportStartPostponedEnterTransition();
                 return true;
             }
@@ -201,7 +234,9 @@ public class ArticleListActivity extends AppCompatActivity implements
                     ImageLoaderHelper.getInstance(ArticleListActivity.this).getImageLoader());
             holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
 
-            ViewCompat.setTransitionName(holder.thumbnailView, "thumbnailView" + position);
+            String transitionName = THUMBNAIL_TRANSITION_NAME_BASE + position;
+            ViewCompat.setTransitionName(holder.thumbnailView, transitionName);
+            holder.thumbnailView.setTag(transitionName);
         }
 
         @Override

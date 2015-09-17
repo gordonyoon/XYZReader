@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
+import android.app.SharedElementCallback;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -29,6 +30,9 @@ import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 
+import java.util.List;
+import java.util.Map;
+
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -51,6 +55,7 @@ public class ArticleDetailActivity extends AppCompatActivity
     private int mTopInset;
     private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
     private boolean mIsHiding;
+    private boolean mIsReturning;
 
     private int mOriginalPos;
     private int mCurrentPos;
@@ -91,6 +96,25 @@ public class ArticleDetailActivity extends AppCompatActivity
         }
     };
 
+    SharedElementCallback mCallback = new SharedElementCallback() {
+        @Override
+        public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+            super.onMapSharedElements(names, sharedElements);
+            if (mIsReturning) {
+                View sharedView = mPagerAdapter.getCurrentFragment().getSharedElement();
+                if (sharedView == null) {
+                    names.clear();
+                    sharedElements.clear();
+                } else if (mCurrentPos != mOriginalPos) {
+                    names.clear();
+                    names.add(sharedView.getTransitionName());
+                    sharedElements.clear();
+                    sharedElements.put(sharedView.getTransitionName(), sharedView);
+                }
+            }
+        }
+    };
+
     @OnClick(R.id.action_up)
     public void onUpClick() {
         onSupportNavigateUp();
@@ -111,6 +135,7 @@ public class ArticleDetailActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_detail);
         ButterKnife.bind(this);
+        setEnterSharedElementCallback(mCallback);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().getDecorView().setSystemUiVisibility(
@@ -159,6 +184,8 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     public void supportFinishAfterTransition() {
+        mIsReturning = true;
+
         Intent data = new Intent();
         data.putExtra(EXTRA_CURRENT_ITEM_POS, mCurrentPos);
         data.putExtra(EXTRA_PREV_ITEM_POS, getIntent().getExtras().getInt(EXTRA_CURRENT_ITEM_POS));
@@ -279,6 +306,8 @@ public class ArticleDetailActivity extends AppCompatActivity
     }
 
     private class MyPagerAdapter extends FragmentStatePagerAdapter {
+        ArticleDetailFragment mCurrFragment;
+
         public MyPagerAdapter(FragmentManager fm) {
             super(fm);
         }
@@ -286,15 +315,15 @@ public class ArticleDetailActivity extends AppCompatActivity
         @Override
         public Fragment getItem(int position) {
             mCursor.moveToPosition(position);
-            return ArticleDetailFragment.newInstance(mCursor.getLong(ArticleLoader.Query._ID));
+            return ArticleDetailFragment.newInstance(mCursor.getLong(ArticleLoader.Query._ID), position);
         }
 
         @Override
         public void setPrimaryItem(ViewGroup container, int position, Object object) {
             super.setPrimaryItem(container, position, object);
-            ArticleDetailFragment fragment = (ArticleDetailFragment)object;
-            if (fragment != null) {
-                mSelectedItemUpButtonFloor = fragment.getUpButtonFloor();
+            mCurrFragment = (ArticleDetailFragment)object;
+            if (mCurrFragment != null) {
+                mSelectedItemUpButtonFloor = mCurrFragment.getUpButtonFloor();
                 updateUpButtonPosition();
             }
         }
@@ -302,6 +331,10 @@ public class ArticleDetailActivity extends AppCompatActivity
         @Override
         public int getCount() {
             return (mCursor != null) ? mCursor.getCount() : 0;
+        }
+
+        public ArticleDetailFragment getCurrentFragment() {
+            return mCurrFragment;
         }
     }
 }

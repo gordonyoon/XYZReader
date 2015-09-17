@@ -10,6 +10,8 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.graphics.Palette;
 import android.text.Html;
 import android.text.format.DateUtils;
@@ -29,9 +31,11 @@ import com.example.xyzreader.data.ArticleLoader;
 import butterknife.Bind;
 import butterknife.BindBool;
 import butterknife.BindDimen;
+import butterknife.ButterKnife;
 
 import static butterknife.ButterKnife.bind;
 import static butterknife.ButterKnife.findById;
+import static com.example.xyzreader.ui.ArticleListActivity.*;
 
 /**
  * A fragment representing a single Article detail screen. This fragment is
@@ -41,11 +45,13 @@ import static butterknife.ButterKnife.findById;
 public class ArticleDetailFragment extends Fragment implements
         LoaderManager.LoaderCallbacks<Cursor> {
     public static final String ARG_ITEM_ID = "item_id";
+    public static final String ARG_ITEM_POS = "item_position";
     private static final String TAG = "ArticleDetailFragment";
     private static final float PARALLAX_FACTOR = 1.75f;
 
     private Cursor mCursor;
     private long mItemId;
+    private int mPosition;
 
     private int mMutedColor = 0xFF333333;
 
@@ -68,9 +74,10 @@ public class ArticleDetailFragment extends Fragment implements
     public ArticleDetailFragment() {
     }
 
-    public static ArticleDetailFragment newInstance(long itemId) {
+    public static ArticleDetailFragment newInstance(long itemId, int position) {
         Bundle arguments = new Bundle();
         arguments.putLong(ARG_ITEM_ID, itemId);
+        arguments.putInt(ARG_ITEM_POS, position);
         ArticleDetailFragment fragment = new ArticleDetailFragment();
         fragment.setArguments(arguments);
         return fragment;
@@ -80,8 +87,9 @@ public class ArticleDetailFragment extends Fragment implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (getArguments().containsKey(ARG_ITEM_ID)) {
+        if (getArguments() != null) {
             mItemId = getArguments().getLong(ARG_ITEM_ID);
+            mPosition = getArguments().getInt(ARG_ITEM_POS);
         }
         setHasOptionsMenu(true);
     }
@@ -91,6 +99,8 @@ public class ArticleDetailFragment extends Fragment implements
                              Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
         bind(this, mRootView);
+
+        mPhotoView.setTransitionName(THUMBNAIL_TRANSITION_NAME_BASE + mPosition);
 
         mDrawInsetsFrameLayout.setOnInsetsCallback(new DrawInsetsFrameLayout.OnInsetsCallback() {
             @Override
@@ -252,5 +262,23 @@ public class ArticleDetailFragment extends Fragment implements
         return mIsCard
                 ? (int)mPhotoView.getTranslationY() + mPhotoView.getHeight() - mScrollY
                 : mPhotoView.getHeight() - mScrollY;
+    }
+
+    @Nullable
+    public View getSharedElement() {
+        if (getView() != null) {
+            View view = getView().findViewById(R.id.photo);
+            if (isViewInBounds(getView().findViewById(R.id.scrollview), view)) {
+                return view;
+            }
+        }
+        return null;
+    }
+
+
+    public boolean isViewInBounds(@NonNull View container, @NonNull View view) {
+        Rect containerBounds = new Rect();
+        container.getHitRect(containerBounds);
+        return view.getLocalVisibleRect(containerBounds);
     }
 }
