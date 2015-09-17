@@ -12,7 +12,6 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v4.util.Pair;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
@@ -55,7 +54,6 @@ public class ArticleListActivity extends AppCompatActivity implements
     @Bind(R.id.swipe_refresh_layout) SwipeRefreshLayout mSwipeRefreshLayout;
     @Bind(R.id.recycler_view) RecyclerView mRecyclerView;
     private boolean mIsRefreshing = false;
-    private boolean mIsReentering;
 
     private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
         @Override
@@ -71,17 +69,14 @@ public class ArticleListActivity extends AppCompatActivity implements
         @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
             super.onMapSharedElements(names, sharedElements);
-            if (mIsReentering) {
-                String newTransitionName = THUMBNAIL_TRANSITION_NAME_BASE + mCurrPos;
-                View newSharedView = mRecyclerView.findViewWithTag(newTransitionName);
-                if (newSharedView != null) {
-                    names.clear();
-                    names.add(newTransitionName);
-                    sharedElements.clear();
-                    sharedElements.put(newTransitionName, newSharedView);
-                }
+            String newTransitionName = THUMBNAIL_TRANSITION_NAME_BASE + mCurrPos;
+            View newSharedView = mRecyclerView.findViewWithTag(newTransitionName);
+            if (newSharedView != null) {
+                names.clear();
+                names.add(newTransitionName);
+                sharedElements.clear();
+                sharedElements.put(newTransitionName, newSharedView);
             }
-            mIsReentering = false;
         }
     };
 
@@ -126,7 +121,6 @@ public class ArticleListActivity extends AppCompatActivity implements
     @Override
     public void onActivityReenter(int resultCode, Intent data) {
         super.onActivityReenter(resultCode, data);
-        mIsReentering = true;
 
         mCurrPos = data.getIntExtra(EXTRA_CURRENT_ITEM_POS, 0);
         mPrevPos = data.getIntExtra(EXTRA_PREV_ITEM_POS, 0);
@@ -170,7 +164,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         mRecyclerView.setAdapter(null);
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         @Bind(R.id.thumbnail) DynamicHeightNetworkImageView thumbnailView;
         @Bind(R.id.article_title) TextView titleView;
         @Bind(R.id.article_subtitle) TextView subtitleView;
@@ -178,6 +172,18 @@ public class ArticleListActivity extends AppCompatActivity implements
         public ViewHolder(View view) {
             super(view);
             ButterKnife.bind(this, view);
+        }
+
+        @Override
+        public void onClick(View v) {
+            Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId()));
+
+            // send the list position
+            String transitionName = thumbnailView.getTransitionName();
+            intent.putExtra(EXTRA_CURRENT_ITEM_POS, Integer.parseInt(transitionName.replaceAll("[^0-9]", "")));
+
+            startActivity(intent, ActivityOptionsCompat.makeSceneTransitionAnimation(
+                    ArticleListActivity.this, thumbnailView, transitionName).toBundle());
         }
     }
 
@@ -192,26 +198,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.list_item_article, parent, false);
             final ViewHolder vh = new ViewHolder(view);
-            view.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Intent intent = new Intent(Intent.ACTION_VIEW,
-                            ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
-
-                    // send the list position
-                    String transitionName = vh.thumbnailView.getTransitionName();
-                    if (transitionName != null) {
-                        intent.putExtra(EXTRA_CURRENT_ITEM_POS, Integer.parseInt(transitionName.replaceAll("[^0-9]", "")));
-                    }
-
-                    ActivityOptionsCompat activityOptions =
-                            ActivityOptionsCompat.makeSceneTransitionAnimation(
-                                    ArticleListActivity.this,
-                                    new Pair<View, String>(vh.thumbnailView, getString(R.string.detail_fragment_image_transition_name)));
-                    ActivityCompat.startActivity(
-                            ArticleListActivity.this, intent, activityOptions.toBundle());
-                }
-            });
+            view.setOnClickListener(vh);
             return vh;
         }
 

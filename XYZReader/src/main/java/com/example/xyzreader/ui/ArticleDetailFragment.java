@@ -12,6 +12,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
 import android.text.Html;
 import android.text.format.DateUtils;
@@ -20,6 +21,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -31,11 +33,10 @@ import com.example.xyzreader.data.ArticleLoader;
 import butterknife.Bind;
 import butterknife.BindBool;
 import butterknife.BindDimen;
-import butterknife.ButterKnife;
 
 import static butterknife.ButterKnife.bind;
 import static butterknife.ButterKnife.findById;
-import static com.example.xyzreader.ui.ArticleListActivity.*;
+import static com.example.xyzreader.ui.ArticleListActivity.THUMBNAIL_TRANSITION_NAME_BASE;
 
 /**
  * A fragment representing a single Article detail screen. This fragment is
@@ -123,6 +124,16 @@ public class ArticleDetailFragment extends Fragment implements
 
         bindViews();
         updateStatusBar();
+
+        mRootView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                mRootView.getViewTreeObserver().removeOnPreDrawListener(this);
+                ((AppCompatActivity)getActivity()).supportStartPostponedEnterTransition();
+                return true;
+            }
+        });
+
         return mRootView;
     }
 
@@ -162,6 +173,12 @@ public class ArticleDetailFragment extends Fragment implements
             mCursor = null;
         }
 
+        bindViews();
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> cursorLoader) {
+        mCursor = null;
         bindViews();
     }
 
@@ -247,12 +264,6 @@ public class ArticleDetailFragment extends Fragment implements
         }
     }
 
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-        mCursor = null;
-        bindViews();
-    }
-
     public int getUpButtonFloor() {
         if (mPhotoView == null || mPhotoView.getHeight() == 0) {
             return Integer.MAX_VALUE;
@@ -266,15 +277,11 @@ public class ArticleDetailFragment extends Fragment implements
 
     @Nullable
     public View getSharedElement() {
-        if (getView() != null) {
-            View view = getView().findViewById(R.id.photo);
-            if (isViewInBounds(getView().findViewById(R.id.scrollview), view)) {
-                return view;
-            }
+        if (isViewInBounds(mScrollView, mPhotoView)) {
+            return mPhotoView;
         }
         return null;
     }
-
 
     public boolean isViewInBounds(@NonNull View container, @NonNull View view) {
         Rect containerBounds = new Rect();

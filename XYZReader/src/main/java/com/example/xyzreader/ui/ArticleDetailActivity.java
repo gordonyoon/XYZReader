@@ -55,7 +55,6 @@ public class ArticleDetailActivity extends AppCompatActivity
     private int mTopInset;
     private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
     private boolean mIsHiding;
-    private boolean mIsReturning;
 
     private int mOriginalPos;
     private int mCurrentPos;
@@ -100,17 +99,12 @@ public class ArticleDetailActivity extends AppCompatActivity
         @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
             super.onMapSharedElements(names, sharedElements);
-            if (mIsReturning) {
-                View sharedView = mPagerAdapter.getCurrentFragment().getSharedElement();
-                if (sharedView == null) {
-                    names.clear();
-                    sharedElements.clear();
-                } else {
-                    names.clear();
-                    names.add(sharedView.getTransitionName());
-                    sharedElements.clear();
-                    sharedElements.put(sharedView.getTransitionName(), sharedView);
-                }
+            View sharedView = mPagerAdapter.getCurrentFragment().getSharedElement();
+            if (sharedView != null) {
+                names.clear();
+                names.add(sharedView.getTransitionName());
+                sharedElements.clear();
+                sharedElements.put(sharedView.getTransitionName(), sharedView);
             }
         }
     };
@@ -135,6 +129,8 @@ public class ArticleDetailActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_detail);
         ButterKnife.bind(this);
+
+        supportPostponeEnterTransition();
         setEnterSharedElementCallback(mCallback);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -184,8 +180,6 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     public void supportFinishAfterTransition() {
-        mIsReturning = true;
-
         Intent data = new Intent();
         data.putExtra(EXTRA_CURRENT_ITEM_POS, mCurrentPos);
         data.putExtra(EXTRA_PREV_ITEM_POS, getIntent().getExtras().getInt(EXTRA_CURRENT_ITEM_POS));
@@ -221,21 +215,7 @@ public class ArticleDetailActivity extends AppCompatActivity
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         mCursor = cursor;
         mPagerAdapter.notifyDataSetChanged();
-
-        // Select the start ID
-        if (mStartId > 0) {
-            mCursor.moveToFirst();
-            // TODO: optimize
-            while (!mCursor.isAfterLast()) {
-                if (mCursor.getLong(ArticleLoader.Query._ID) == mStartId) {
-                    final int position = mCursor.getPosition();
-                    mPager.setCurrentItem(position, false);
-                    break;
-                }
-                mCursor.moveToNext();
-            }
-            mStartId = 0;
-        }
+        mPager.setCurrentItem(mCurrentPos);
     }
 
     @Override
