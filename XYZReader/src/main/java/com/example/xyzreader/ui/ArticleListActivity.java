@@ -19,7 +19,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.text.format.DateUtils;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -73,15 +72,13 @@ public class ArticleListActivity extends AppCompatActivity implements
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
             super.onMapSharedElements(names, sharedElements);
             if (mIsReentering) {
-                if (mCurrPos != mPrevPos) {
-                    String newTransitionName = THUMBNAIL_TRANSITION_NAME_BASE + mCurrPos;
-                    View newSharedView = mRecyclerView.findViewWithTag(newTransitionName);
-                    if (newSharedView != null) {
-                        names.clear();
-                        names.add(newTransitionName);
-                        sharedElements.clear();
-                        sharedElements.put(newTransitionName, newSharedView);
-                    }
+                String newTransitionName = THUMBNAIL_TRANSITION_NAME_BASE + mCurrPos;
+                View newSharedView = mRecyclerView.findViewWithTag(newTransitionName);
+                if (newSharedView != null) {
+                    names.clear();
+                    names.add(newTransitionName);
+                    sharedElements.clear();
+                    sharedElements.put(newTransitionName, newSharedView);
                 }
             }
             mIsReentering = false;

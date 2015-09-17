@@ -105,7 +105,7 @@ public class ArticleDetailActivity extends AppCompatActivity
                 if (sharedView == null) {
                     names.clear();
                     sharedElements.clear();
-                } else if (mCurrentPos != mOriginalPos) {
+                } else {
                     names.clear();
                     names.add(sharedView.getTransitionName());
                     sharedElements.clear();
